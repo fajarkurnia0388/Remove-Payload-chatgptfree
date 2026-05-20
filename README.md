@@ -116,3 +116,12 @@ Typical files include:
 ## Repository status
 
 This repository documents the remediation work for the incident and provides a reproducible cleanup workflow for the known indicators discovered during analysis.
+
+## Acknowledgements
+
+This repository and incident cleanup workflow were developed with assistance from:
+
+* [OpenAI ChatGPT](https://chat.openai.com?utm_source=chatgpt.com) — used for incident triage, IOC analysis, PowerShell remediation scripting, and report drafting
+* [Anthropic Claude](https://claude.ai?utm_source=chatgpt.com) — used for script review, bug identification, coverage improvements, and remediation validation
+
+The final script and report were manually reviewed and refined before publication.
